@@ -19,3 +19,4 @@ uploads
 .vscode/
 tmp/
 ecommerce.db
+runtime.txt

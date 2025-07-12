@@ -1,0 +1,94 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+enum AccountType {
+  Customer
+  Vendor
+  Admin
+}
+
+enum BusinessType {
+  BeautyProfessional
+  LocalProducts
+}
+
+model UserSession {
+  id           String    @id @default(uuid())
+  accountId    String    @map("account_id")
+  expiration   DateTime
+  fcmToken     String?   @map("fcm_token")
+  refreshToken String?   @map("refresh_token")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  lastSignedIn DateTime? @updatedAt @map("last_signed_in")
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+  @@map("user_sessions")
+}
+
+model Account {
+  id           String        @id @default(uuid())
+  name         String        @map("name")
+  email        String?       @unique
+  phoneNumber  String        @unique @map("phone_number")
+  password     String?
+  avatarUrl    String?       @map("avatar_url")
+  rating       Decimal       @default(0)
+  type         AccountType
+  isSuspended  Boolean       @default(false)
+  businessName String?       @map("business_name") // For vendors
+  businessType BusinessType? @map("business_type") // For vendors
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  sessions             UserSession[]
+  services             VendorService[] @relation("VendorServices")
+  appointmentsAsUser   AppointMent[]   @relation("UserAppointments")
+  appointmentsAsVendor AppointMent[]   @relation("VendorAppointments")
+
+  @@index([email])
+  @@index([phoneNumber])
+  @@map("accounts")
+}
+
+model VendorService {
+  id        String   @id @default(uuid())
+  name      String   @map("name")
+  imageUrl  String?  @map("image_url")
+  price     Decimal
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  vendor   Account @relation("VendorServices", fields: [vendorId], references: [id], onDelete: Cascade)
+  vendorId String
+
+  @@map("vendor_services")
+}
+
+model AppointMent {
+  id        String   @id @default(uuid())
+  time      DateTime
+  opened    Boolean
+  note      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  userId   String
+  vendorId String
+
+  user   Account @relation("UserAppointments", fields: [userId], references: [id], onDelete: Cascade)
+  vendor Account @relation("VendorAppointments", fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@map("appointments")
+}
